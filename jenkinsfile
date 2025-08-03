@@ -1,74 +1,98 @@
 pipeline {
     agent any
+
     tools {
         jdk 'jdk17'
         nodejs 'nodejs'
     }
+
     environment {
-        SCANNER_HOME=tool 'sonar-scanner' 
+        SCANNER_HOME = tool 'sonar-scanner'
     }
+
     stages {
-        stage('clean workspace'){
-            steps{
+
+        stage('Clean Workspace') {
+            steps {
                 cleanWs()
             }
         }
-        stage('Git checkout') {
+
+        stage('Git Checkout') {
             steps {
                 git 'https://github.com/pj013525/DevOps-Project-Swiggy.git'
             }
         }
-        stage('Code quality Analysis') {
+
+        stage('Code Quality Analysis') {
             steps {
-               withSonarQubeEnv('sonar-server') {
-                   sh'''
-                    $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=swiggy -Dsonar.projectKey=swiggy-app -Dsonar.sources=.'''
-               }
+                withSonarQubeEnv('sonar-server') {
+                    sh '''
+                        $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=swiggy \
+                        -Dsonar.projectKey=swiggy-app \
+                        -Dsonar.sources=.
+                    '''
+                }
             }
         }
-         stage('Quality gate') {
+
+        stage('Quality Gate') {
             steps {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'sonar-creds'
                 }
             }
         }
-         stage('Install dependencies') {
+
+        stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
+
         stage('Dependencies-Check') {
             steps {
-               dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit ', odcInstallation: 'dependency-check'
-               dependencyCheckPublisher pattern: '**/dependency-check.xml'
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit', odcInstallation: 'dependency-check'
+                dependencyCheckPublisher pattern: '**/dependency-check.xml'
             }
         }
-         stage('TRIVY FS SCAN') {
+
+        stage('TRIVY FS SCAN') {
             steps {
-                sh "trivy fs . >> trivy-scanned-files.txt"
+                sh '''
+                    mkdir -p /var/lib/trivy-cache
+                    trivy fs . --cache-dir /var/lib/trivy-cache >> trivy-scanned-files.txt
+                '''
             }
         }
-        stage('Build and Push the Image') {
+
+        stage('Docker Build & Push') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'dockerhub-creds', toolName: 'docker') {
-                        sh "docker build -t swiggy-image ."
-                        sh "docker tag swiggy-image pj013525/swiggy-image:latest"
-                        sh "docker push pj013525/swiggy-image"
+                        sh '''
+                            docker build -t swiggy-image .
+                            docker tag swiggy-image pj013525/swiggy-image:latest
+                            docker push pj013525/swiggy-image
+                        '''
                     }
-                    
                 }
-           }
-        }
-        stage('TRIVY IMAGE SCAN') {
-            steps {
-                sh "trivy image pj013525/swiggy-image:latest >> trivy-scanned-images.txt"
             }
         }
-        stage('Run the container') {
+
+        stage('TRIVY IMAGE SCAN') {
             steps {
-                sh "docker run -d --name Swiggy-App -p 3000:3000 pj013525/swiggy-image:latest"
+                sh '''
+                    mkdir -p /var/lib/trivy-cache
+                    trivy image pj013525/swiggy-image:latest --cache-dir /var/lib/trivy-cache >> trivy-scanned-images.txt
+                '''
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh 'docker run -d --name Swiggy-App -p 3000:3000 pj013525/swiggy-image:latest'
             }
         }
     }
