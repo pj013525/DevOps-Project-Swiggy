@@ -31,7 +31,7 @@ pipeline {
                         $SCANNER_HOME/bin/sonar-scanner \
                         -Dsonar.projectName=swiggy \
                         -Dsonar.projectKey=swiggy-app \
-                        -Dsonar.sources=.
+                        -Dsonar.sources=src
                     '''
                 }
             }
