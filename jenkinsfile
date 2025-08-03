@@ -8,6 +8,11 @@ pipeline {
         SCANNER_HOME=tool 'sonar-scanner' 
     }
     stages {
+        stage('clean workspace'){
+            steps{
+                cleanWs()
+            }
+        }
         stage('Git checkout') {
             steps {
                 git 'https://github.com/pj013525/DevOps-Project-Swiggy.git'
@@ -41,7 +46,7 @@ pipeline {
         }
          stage('TRIVY FS SCAN') {
             steps {
-                sh "trivy fs . > trivy-scanned-files.txt"
+                sh "trivy fs . >> trivy-scanned-files.txt"
             }
         }
         stage('Build and Push the Image') {
@@ -58,7 +63,7 @@ pipeline {
         }
         stage('TRIVY IMAGE SCAN') {
             steps {
-                sh "trivy image pj013525/swiggy-image:latest > trivy-scanned-images.txt"
+                sh "trivy image pj013525/swiggy-image:latest >> trivy-scanned-images.txt"
             }
         }
         stage('Run the container') {
