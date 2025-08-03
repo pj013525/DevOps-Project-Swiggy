@@ -1,73 +1,69 @@
-pipeline{
+pipeline {
     agent any
-    tools{
+    tools {
         jdk 'jdk17'
-        nodejs 'node23'
+        nodejs 'nodejs'
     }
-    environment {
-        SCANNER_HOME=tool 'sonar-scanner'
+    envivronment {
+        SCANNER_HOME=tool 'sonar-scanner' 
     }
     stages {
-        stage('clean workspace'){
-            steps{
-                cleanWs()
+        stage('Git checkout') {
+            steps {
+                git 'https://github.com/pj013525/DevOps-Project-Swiggy.git'
             }
         }
-        stage('Checkout from Git'){
-            steps{
-                git 'https://github.com/KastroVKiran/DevOps-Project-Swiggy.git'
+        stage('Code quality Analysis') {
+            steps {
+               withSonarQubeEnv('sonar-server') {
+                   sh'''
+                   $SCANNER_HOME/bin/scanner -D.sonar.projectName=swiggy -D.sonar.projectKey=swiggy-app'''
+               }
             }
         }
-        stage("Sonarqube Analysis "){
-            steps{
-                withSonarQubeEnv('sonar-server') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Swiggy \
-                    -Dsonar.projectKey=Swiggy '''
-                }
-            }
-        }
-        stage("quality gate"){
-           steps {
+         stage('Quality gate') {
+            steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token' 
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-creds'
                 }
-            } 
-        }
-        stage('Install Dependencies') {
-            steps {
-                sh "npm install"
             }
         }
-        stage('OWASP FS SCAN') {
+         stage('Install dependencies') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                sh 'npm install'
             }
         }
-        stage('TRIVY FS SCAN') {
+        stage('Dependencies-Check') {
             steps {
-                sh "trivy fs . > trivyfs.txt"
+               dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit ', odcInstallation: 'dependency-check'
+               dependencyCheckPublisher pattern: '**/dependency-check.xml'
             }
         }
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker-creds', toolName: 'docker'){   
-                       sh "docker build -t swiggy ."
-                       sh "docker tag swiggy kastrov/swiggy:latest "
-                       sh "docker push kastrov/swiggy:latest "
+         stage('TRIVY FS SCAN') {
+            steps {
+                sh "trivy fs . > trivy-scanned-files.txt"
+            }
+        }
+        stage('Build and Push the Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-creds', toolName: 'docker') {
+                        sh "docker build -t swiggy-image ."
+                        sh "docker tag swiggy-image pj013525/swiggy-image:latest"
+                        sh "docker push pj013525/swiggy-image"
                     }
+                    
                 }
+           }
+        }
+        stage('TRIVY IMAGE SCAN') {
+            steps {
+                sh "trivy image pj013525/swiggy-image:latest > trivy-scanned-images.txt"
             }
         }
-        stage("TRIVY"){
-            steps{
-                sh "trivy image kastrov/swiggy:latest > trivy.txt" 
-            }
-        }
-        stage('Deploy to container'){
-            steps{
-                sh 'docker run -d --name swiggy -p 3000:3000 kastrov/swiggy:latest'
+        stage('Run the container') {
+            steps {
+                sh "docker run -d --name Swiggy-App -p 3000:3000 pj013525/swiggy-image:latest"
             }
         }
     }
