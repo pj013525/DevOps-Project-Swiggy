@@ -34,7 +34,7 @@ Use `terraform init`, `terraform plan`, and `terraform apply` to provision the i
 ---
 
 ### ✅ Step 3: Access EC2 Instance
-Login to the provisioned EC2 instance using **Mobaxterm** or any SSH client.
+Log in to the provisioned EC2 instance using **Mobaxterm** or any SSH client.
 
 ![Login EC2](https://github.com/user-attachments/assets/a1008ed1-93ee-44b9-a004-c8ae61544fbb)
 
@@ -62,7 +62,7 @@ Install the following on the EC2 instance:
 ---
 
 ### ✅ Step 6: Install Jenkins Plugins
-Go to `Manage Jenkins → Plugins → Available Plugins` and install required ones.
+Go to `Manage Jenkins → Plugins → Available Plugins` and install the required ones.
 
 ![Plugins](https://github.com/user-attachments/assets/87746dec-289e-47a2-907d-d86f66633731)  
 ![More Plugins](https://github.com/user-attachments/assets/109e8a28-0a34-4f45-bac4-9ef180d47b1b)
@@ -77,7 +77,7 @@ Configure all tools in `Manage Jenkins → Global Tool Configuration`.
 ---
 
 ### ✅ Step 8: Generate SonarQube Token and Webhook
-Generate a token from SonarQube → `My Account → Security` and setup webhook.
+Generate a token from SonarQube → `My Account → Security` and set up a webhook.
 
 ![Sonar Token](https://github.com/user-attachments/assets/2d89acdc-3e4c-4258-bda3-ccb359fac95f)  
 ![Webhook](https://github.com/user-attachments/assets/78f08f87-ac60-437b-84b8-8986ba516b18)
@@ -130,14 +130,14 @@ Write stages for:
 ---
 
 ### ✅ Step 14: Monitor the Pipeline Build
-Wait for all stages to complete, especially **Dependency-Check** which takes longer.
+Wait for all stages to complete, especially **Dependency-Check**, which takes longer.
 
 ![Dependency Check](https://github.com/user-attachments/assets/980fe6bb-922b-4bff-a90e-055996fba67b)
 
 ---
 
 ### ✅ Step 15: View SonarQube Code Report
-Once pipeline is complete, check SonarQube for quality analysis reports.
+Once the pipeline is complete, check SonarQube for quality analysis reports.
 
 ![SonarQube Project](https://github.com/user-attachments/assets/22f44b8b-2658-439a-9c76-3547a6448bbc)  
 ![Sonar Dashboard](https://github.com/user-attachments/assets/b767fa89-73c2-441d-9ebd-ffb3c4858e1f)
@@ -164,4 +164,4 @@ GitHub: [@pj013525](https://github.com/pj013525)
 
 ---
 
-> ⭐ _Feel free to fork, modify, and improve this repository to suit your own deployment pipelines!_
+> ⭐ _Feel free to fork, modify, and improve this repository to suit your deployment pipelines!_
