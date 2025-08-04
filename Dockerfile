@@ -13,10 +13,10 @@ RUN npm install
 # Copy the application code
 COPY . .
 
-# Buildinf of the React app
+# Building the React app
 RUN npm run build
 
-# Expose port 3000 to access app
+# Expose port 3000 to access the app
 EXPOSE 3000
 
 # Start your Node.js server
