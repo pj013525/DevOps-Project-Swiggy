@@ -153,7 +153,7 @@ Open the app in a browser via `http://<public-ip>:3000`
 
 ## 🎉 Application Successfully Deployed!
 
-You’ve now successfully deployed a production-ready Swiggy clone with full CI/CD integration, security checks, and quality gates.
+Now I have successfully deployed a production-ready Swiggy clone with full CI/CD integration, security checks, and quality gates.
 
 ---
 
@@ -161,6 +161,7 @@ You’ve now successfully deployed a production-ready Swiggy clone with full CI/
 
 **Padmarao Jonna**  
 GitHub: [@pj013525](https://github.com/pj013525)
+LinkedIn: [@pj013525](www.linkedin.com/in/padmarao-jonna)
 
 ---
 
