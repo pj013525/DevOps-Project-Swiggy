@@ -2,16 +2,19 @@ pipeline {
     agent any
 
     tools {
-        jdk 'jdk17'
-        nodejs 'nodejs'
+        jdk 'jdk-17'
+        nodejs 'nodejs-18'  
     }
 
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        DOCKER_IMAGE = 'pj013525/myapp'
+        DOCKER_USER = 'pj013525'
+        APP_VERSION = '1.0.3-SNAPSHOT'
+        DEPLOY_ENV = 'prod'
     }
 
     stages {
-
         stage('Clean Workspace') {
             steps {
                 cleanWs()
@@ -24,75 +27,58 @@ pipeline {
             }
         }
 
-        stage('Code Quality Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
                     sh '''
-                        $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=swiggy \
-                        -Dsonar.projectKey=swiggy-app \
-                        -Dsonar.sources=src
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=Swiggy \
+                        -Dsonar.projectName=Swiggy \
+                        -Dsonar.projectVersion=1.0 \
+                        -Dsonar.sources=. \
                     '''
                 }
             }
         }
 
-        stage('Quality Gate') {
+        stage('Dependency-Check') {
             steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-creds'
-                }
+                dependencyCheck additionalArguments: '--scan . --format XML --project swiggy-app --out ./reports', odcInstallation: 'dependency-check'
+                dependencyCheckPublisher pattern: '**/reports/dependency-check-report.xml'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Scan Files with Trivy') {
             steps {
-                sh 'npm install'
+                sh 'mkdir -p trivy-cache'
+                sh 'trivy fs . --cache-dir trivy-cache > trivy-scanned-files.txt'
             }
         }
 
-        stage('Dependencies-Check') {
+        stage('Docker Build') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit', odcInstallation: 'dependency-check'
-                dependencyCheckPublisher pattern: '**/dependency-check.xml'
+                sh 'docker build -t ${DOCKER_IMAGE} .'
+                sh 'docker tag ${DOCKER_IMAGE} ${DOCKER_USER}/${DOCKER_IMAGE}:${APP_VERSION}'
             }
         }
 
-        stage('TRIVY FS SCAN') {
+        stage('Docker Push') {
             steps {
-                sh '''
-                    mkdir -p /var/lib/trivy-cache
-                    trivy fs . --cache-dir /var/lib/trivy-cache >> trivy-scanned-files.txt
-                '''
+               withDockerRegistry(credentialsId: 'dockerhub-creds', url: 'https://index.docker.io/v1/') {
+                     sh 'docker push ${DOCKER_UER}/${DOCKER_IMAGE}:${APP_VERSION}'
+               }
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Scan Docker Image with Trivy') {
             steps {
-                script {
-                    withDockerRegistry(credentialsId: 'dockerhub-creds', toolName: 'docker') {
-                        sh '''
-                            docker build -t swiggy-image .
-                            docker tag swiggy-image pj013525/swiggy-image:latest
-                            docker push pj013525/swiggy-image
-                        '''
-                    }
-                }
+                sh 'trivy image ${DOCKER_USER}/${DOCKER_IMAGE}:${APP_VERSION} > trivy-image-scan.txt'
             }
         }
 
-        stage('TRIVY IMAGE SCAN') {
+        stage('Run Docker Container') {
             steps {
-                sh '''
-                    mkdir -p /var/lib/trivy-cache
-                    trivy image pj013525/swiggy-image:latest --cache-dir /var/lib/trivy-cache >> trivy-scanned-images.txt
-                '''
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                sh 'docker run -d --name Swiggy-App -p 3000:3000 pj013525/swiggy-image:latest'
+                sh 'docker run -d -p 3000:3000 --name swiggy ${DOCKER_IMAGE}:${APP_VERSION}'
             }
         }
     }
